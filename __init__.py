@@ -24,6 +24,8 @@ try:
         TripoLeihuoRigNode,
         TripoLeihuoRetargetNode,
         TripoLeihuoConvertNode,
+        TripoLeihuoMeshSegmentationNode,
+        TripoLeihuoMeshCompletionNode,
     )
 
     print(f"[OK] 成功加载节点:")
@@ -34,6 +36,8 @@ try:
     print(f"  - TripoLeihuoRigNode               (绑骨)")
     print(f"  - TripoLeihuoRetargetNode          (动画重定向)")
     print(f"  - TripoLeihuoConvertNode           (模型转换)")
+    print(f"  - TripoLeihuoMeshSegmentationNode  (网格分割)")
+    print(f"  - TripoLeihuoMeshCompletionNode    (网格补全)")
     print(f"  网关: ai.leihuo.netease.com | 支持版本: v3.1, P1, v3.0, v2.5, v2.0, v1.4")
     print("=" * 70)
 
@@ -57,6 +61,8 @@ class TripoLeihuoExtension(ComfyExtension):
             TripoLeihuoRigNode,
             TripoLeihuoRetargetNode,
             TripoLeihuoConvertNode,
+            TripoLeihuoMeshSegmentationNode,
+            TripoLeihuoMeshCompletionNode,
         ]
 
 

@@ -13,6 +13,8 @@ Tripo3D 3D模型生成 ComfyUI 节点 — 雷火网关版
 - TripoLeihuoRigNode:           绑骨
 - TripoLeihuoRetargetNode:      动画重定向
 - TripoLeihuoConvertNode:       模型格式转换
+- TripoLeihuoMeshSegmentationNode: 网格分割（模型拆分）
+- TripoLeihuoMeshCompletionNode:   网格补全（配合分割使用）
 """
 
 import os
@@ -263,6 +265,7 @@ class TripoLeihuoTextToModelNode(io.ComfyNode):
                 io.Combo.Input("texture_quality", default="standard", options=["standard", "detailed"], optional=True, advanced=True, tooltip="纹理质量"),
                 io.Int.Input("face_limit", default=0, min=0, max=2000000, optional=True, advanced=True, tooltip="面数限制(0=自动)"),
                 io.Boolean.Input("quad", default=False, optional=True, advanced=True, tooltip="输出四边面网格"),
+                io.Boolean.Input("generate_parts", default=False, optional=True, advanced=True, tooltip="生成分部件模型（需关闭 texture 和 pbr）"),
                 io.Combo.Input("geometry_quality", default="standard", options=["standard", "detailed"], optional=True, advanced=True, tooltip="几何精度"),
                 io.String.Input(
                     "api_key",
@@ -295,6 +298,7 @@ class TripoLeihuoTextToModelNode(io.ComfyNode):
         texture_quality: str = "standard",
         face_limit: int = 0,
         quad: bool = False,
+        generate_parts: bool = False,
         geometry_quality: str = "standard",
         api_key: str = "",
     ) -> io.NodeOutput:
@@ -305,6 +309,16 @@ class TripoLeihuoTextToModelNode(io.ComfyNode):
 
         print(f"\n[Tripo Leihuo] 文字转3D | 版本: {model_version}")
         style_val = None if style == "None" else style
+
+        # generate_parts 兼容性检查
+        if generate_parts:
+            if texture or pbr:
+                print(f"[Tripo Leihuo] 警告：generate_parts 不兼容 texture/pbr，已自动关闭")
+                texture = False
+                pbr = False
+            if quad:
+                print(f"[Tripo Leihuo] 警告：generate_parts 不兼容 quad，已自动关闭")
+                quad = False
 
         task_id = client.create_text_to_model_task(
             prompt=prompt,
@@ -321,6 +335,7 @@ class TripoLeihuoTextToModelNode(io.ComfyNode):
             style=style_val or "",
             auto_size=True,
             quad=quad,
+            generate_parts=generate_parts,
         )
 
         status_info = await poll_task_until_done(client, task_id)
@@ -363,6 +378,7 @@ class TripoLeihuoImageToModelNode(io.ComfyNode):
                 io.Combo.Input("texture_alignment", default="original_image", options=["original_image", "geometry"], optional=True, advanced=True, tooltip="纹理对齐"),
                 io.Int.Input("face_limit", default=0, min=0, max=500000, optional=True, advanced=True, tooltip="面数限制(0=自动)"),
                 io.Boolean.Input("quad", default=False, optional=True, advanced=True, tooltip="输出四边面网格"),
+                io.Boolean.Input("generate_parts", default=False, optional=True, advanced=True, tooltip="生成分部件模型（需关闭 texture 和 pbr）"),
                 io.Combo.Input("geometry_quality", default="standard", options=["standard", "detailed"], optional=True, advanced=True, tooltip="几何精度"),
                 io.Boolean.Input("auto_size", default=False, optional=True, advanced=True, tooltip="自动缩放到真实世界尺寸"),
                 io.Boolean.Input("align_image", default=False, optional=True, advanced=True, tooltip="对齐图像方向"),
@@ -395,6 +411,7 @@ class TripoLeihuoImageToModelNode(io.ComfyNode):
         texture_alignment: str = "original_image",
         face_limit: int = 0,
         quad: bool = False,
+        generate_parts: bool = False,
         geometry_quality: str = "standard",
         auto_size: bool = False,
         align_image: bool = False,
@@ -413,6 +430,16 @@ class TripoLeihuoImageToModelNode(io.ComfyNode):
         file_token = client.upload_image(jpeg_bytes)
 
         # 提交任务
+        # generate_parts 兼容性检查
+        if generate_parts:
+            if texture or pbr:
+                print(f"[Tripo Leihuo] 警告：generate_parts 不兼容 texture/pbr，已自动关闭")
+                texture = False
+                pbr = False
+            if quad:
+                print(f"[Tripo Leihuo] 警告：generate_parts 不兼容 quad，已自动关闭")
+                quad = False
+
         task_id = client.create_image_to_model_task(
             file_token=file_token,
             model_version=model_version,
@@ -427,6 +454,7 @@ class TripoLeihuoImageToModelNode(io.ComfyNode):
             orientation="align_image" if align_image else "default",
             quad=quad,
             geometry_quality=geometry_quality,
+            generate_parts=generate_parts,
         )
 
         status_info = await poll_task_until_done(client, task_id)
@@ -878,3 +906,133 @@ class TripoLeihuoConvertNode(io.ComfyNode):
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
         glb_file = File3D(model_path, file_ext.lstrip("."))
         return io.NodeOutput(model_path, convert_task_id, glb_file)
+
+
+class TripoLeihuoMeshSegmentationNode(io.ComfyNode):
+    """Tripo 网格分割（模型拆分）— 雷火网关版"""
+
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="TripoLeihuoMeshSegmentationNode",
+            category="leihuo/3d/Tripo",
+            display_name="Tripo 网格分割 (雷火)",
+            description="将3D模型自动分割为多个部件，导入Blender等软件后可在collection区域看到部件名称",
+            inputs=[
+                io.String.Input("task_id", tooltip="Tripo 任务 ID（来自生成/纹理/转换节点）"),
+                io.String.Input(
+                    "api_key",
+                    default="",
+                    multiline=False,
+                    tooltip="可选，覆盖 config.json 中的 api_token",
+                    extra_dict={"password": True}
+                ),
+            ],
+            outputs=[
+                io.String.Output("model_path", tooltip="分割后的3D模型文件本地路径"),
+                io.String.Output("task_id", tooltip="分割任务 ID"),
+                io.String.Output("part_names", tooltip="部件名称列表（逗号分隔，可用于后续补全/转换节点）"),
+                io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
+            ],
+        )
+
+    @classmethod
+    async def execute(cls, task_id: str, api_key: str = "") -> io.NodeOutput:
+        if not task_id:
+            raise RuntimeError("task_id 不能为空")
+
+        client = get_client_and_config(api_key)
+
+        print(f"\n[Tripo Leihuo] 网格分割 | 上游任务ID: {task_id}")
+
+        seg_task_id = client.create_mesh_segmentation_task(
+            original_model_task_id=task_id,
+        )
+
+        status_info = await poll_task_until_done(client, seg_task_id, max_wait=600)
+        model_path = download_model_output(status_info, client)
+
+        # 提取部件名称列表
+        output = status_info.get("output", {})
+        part_names_list = output.get("part_names", [])
+        if isinstance(part_names_list, list) and len(part_names_list) > 0:
+            part_names_str = ",".join(part_names_list)
+        else:
+            part_names_str = ""
+            print(f"[Tripo Leihuo] 警告：未获取到部件名称列表，完整输出: {output}")
+
+        print(f"[Tripo Leihuo] 分割完成！部件: {part_names_str or '(未返回)'}")
+
+        preview_url = output.get("rendered_image", "")
+        preview_tensor = image_url_to_tensor(preview_url) if preview_url else None
+        if preview_tensor is None:
+            preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
+
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, seg_task_id, part_names_str, preview_tensor, glb_file)
+
+
+class TripoLeihuoMeshCompletionNode(io.ComfyNode):
+    """Tripo 网格补全 — 雷火网关版"""
+
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(
+            node_id="TripoLeihuoMeshCompletionNode",
+            category="leihuo/3d/Tripo",
+            display_name="Tripo 网格补全 (雷火)",
+            description="对分割后的模型部件进行几何补全，补全被其他部件遮挡的区域",
+            inputs=[
+                io.String.Input("task_id", tooltip="网格分割任务的 task_id（来自 Tripo 网格分割节点）"),
+                io.String.Input("part_names", default="", multiline=False, optional=True, tooltip="要补全的部件名称（逗号分隔，留空=全部部件）"),
+                io.String.Input(
+                    "api_key",
+                    default="",
+                    multiline=False,
+                    tooltip="可选，覆盖 config.json 中的 api_token",
+                    extra_dict={"password": True}
+                ),
+            ],
+            outputs=[
+                io.String.Output("model_path", tooltip="补全后的3D模型文件本地路径"),
+                io.String.Output("task_id", tooltip="补全任务 ID"),
+                io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
+            ],
+        )
+
+    @classmethod
+    async def execute(cls, task_id: str, part_names: str = "", api_key: str = "") -> io.NodeOutput:
+        if not task_id:
+            raise RuntimeError("task_id 不能为空（需要网格分割任务的 task_id）")
+
+        client = get_client_and_config(api_key)
+
+        # 解析 part_names
+        part_names_list = None
+        if part_names and part_names.strip():
+            part_names_list = [n.strip() for n in part_names.split(',') if n.strip()]
+
+        print(f"\n[Tripo Leihuo] 网格补全 | 分割任务ID: {task_id}")
+        if part_names_list:
+            print(f"[Tripo Leihuo] 指定部件: {part_names_list}")
+        else:
+            print(f"[Tripo Leihuo] 补全全部部件")
+
+        completion_task_id = client.create_mesh_completion_task(
+            original_model_task_id=task_id,
+            part_names=part_names_list,
+        )
+
+        status_info = await poll_task_until_done(client, completion_task_id, max_wait=300)
+        model_path = download_model_output(status_info, client)
+
+        preview_url = status_info.get("output", {}).get("rendered_image", "")
+        preview_tensor = image_url_to_tensor(preview_url) if preview_url else None
+        if preview_tensor is None:
+            preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
+
+        print(f"[Tripo Leihuo] 补全完成！模型: {model_path}")
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, completion_task_id, preview_tensor, glb_file)

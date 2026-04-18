@@ -83,6 +83,8 @@ class TripoAPIClient:
     - rig_model: 绑骨
     - retarget_animation: 动画重定向
     - convert_model: 模型格式转换
+    - mesh_segmentation: 网格分割（模型拆分）
+    - mesh_completion: 网格补全
     """
 
     # 支持的模型版本（含最新 v3.1）
@@ -244,6 +246,7 @@ class TripoAPIClient:
         style: str = "",
         auto_size: bool = False,
         quad: bool = False,
+        generate_parts: bool = False,
     ) -> str:
         """提交 text-to-model 生成任务"""
         payload = {
@@ -269,6 +272,8 @@ class TripoAPIClient:
             payload["texture_seed"] = texture_seed
         if style:
             payload["style"] = style
+        if generate_parts:
+            payload["generate_parts"] = True
 
         return self.create_task(payload)
 
@@ -290,6 +295,7 @@ class TripoAPIClient:
         smart_low_poly: bool = False,
         geometry_quality: str = "standard",
         export_uv: bool = True,
+        generate_parts: bool = False,
     ) -> str:
         """提交 image-to-model 生成任务"""
         payload = {
@@ -318,6 +324,8 @@ class TripoAPIClient:
             payload["texture_seed"] = texture_seed
         if geometry_quality != "standard":
             payload["geometry_quality"] = geometry_quality
+        if generate_parts:
+            payload["generate_parts"] = True
 
         return self.create_task(payload)
 
@@ -506,6 +514,64 @@ class TripoAPIClient:
         if animate_in_place:
             payload["animate_in_place"] = animate_in_place
 
+        return self.create_task(payload)
+
+    def create_mesh_segmentation_task(
+        self,
+        original_model_task_id: str,
+        model_version: str = "v1.0-20250506",
+    ) -> str:
+        """
+        提交网格分割（模型拆分）任务
+
+        根据模型的类型和形状，自动将整个模型分离成多个部件。
+        导入 Blender 等软件后，可以在 collection 区域看到各个部件的名称。
+
+        Args:
+            original_model_task_id: 上游任务的 task_id
+                支持: text_to_model, image_to_model, multiview_to_model,
+                      texture_model, refine_model, import_model, highpoly_to_lowpoly
+            model_version: 分割模型版本，目前仅支持 v1.0-20250506
+
+        Returns:
+            task_id 字符串
+        """
+        payload = {
+            "type": "mesh_segmentation",
+            "original_model_task_id": original_model_task_id,
+            "model_version": model_version,
+        }
+        return self.create_task(payload)
+
+    def create_mesh_completion_task(
+        self,
+        original_model_task_id: str,
+        part_names: List[str] = None,
+        model_version: str = "v1.0-20250506",
+    ) -> str:
+        """
+        提交网格补全任务
+
+        对 mesh_segmentation 分割出的指定部件进行几何补全，
+        补全被其他部件遮挡的区域。
+
+        Args:
+            original_model_task_id: mesh_segmentation 任务的 task_id
+                仅支持 mesh_segmentation 的 task_id
+            part_names: 要补全的部件名称列表（来自分割结果）
+                默认为分割结果中的所有部件
+            model_version: 补全模型版本，目前仅支持 v1.0-20250506
+
+        Returns:
+            task_id 字符串
+        """
+        payload = {
+            "type": "mesh_completion",
+            "original_model_task_id": original_model_task_id,
+            "model_version": model_version,
+        }
+        if part_names:
+            payload["part_names"] = part_names
         return self.create_task(payload)
 
     def get_task_status(self, task_id: str) -> Dict[str, Any]:
