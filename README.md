@@ -1,6 +1,6 @@
-# ComfyUI-Tripo-Leihuo
+# ComfyUI-Tripo-XX
 
-Tripo3D 3D模型生成 ComfyUI 节点 — **雷火网关版**
+Tripo3D 3D模型生成 ComfyUI 节点的一些开发
 
 通过 `ai.leihuo.netease.com` 代理访问 Tripo API，支持 **v3.1-20260211** 等最新模型版本。
 
@@ -8,10 +8,10 @@ Tripo3D 3D模型生成 ComfyUI 节点 — **雷火网关版**
 
 | 特性 | 内置 Tripo 节点 | 本插件 (Leihuo) |
 |------|----------------|-----------------|
-| API 通道 | comfy.org 代理 → Tripo 官方 | ai.leihuo.netease.com 雷火网关 |
+| API 通道 | comfy.org 代理 → Tripo 官方 | ai.leihuo.netease.com 网关 |
 | 最新模型版本 | v3.0-20250812 | **v3.1-20260211** |
 | P1 低多边形 | ❌ | ✅ P1-20260311 |
-| 认证方式 | comfy.org 账号 | 雷火 API Token |
+| 认证方式 | comfy.org 账号 |  API Token |
 | 受 ComfyUI 更新影响 | ✅ | ❌ |
 
 ## 节点列表
@@ -20,13 +20,13 @@ Tripo3D 3D模型生成 ComfyUI 节点 — **雷火网关版**
 
 | 节点 | 功能 | 说明 |
 |------|------|------|
-| **Tripo 文字转3D (雷火)** | text_to_model | 文字描述生成3D模型 |
-| **Tripo 图像转3D (雷火)** | image_to_model | 单张图像生成3D模型 |
-| **Tripo 多视角转3D (雷火)** | multiview_to_model | 最多4张视角图生成3D模型 |
-| **Tripo 纹理生成 (雷火)** | texture_model | 为已有模型生成纹理 |
-| **Tripo 绑骨 (雷火)** | rig_model | 为模型添加骨骼绑定 |
-| **Tripo 动画重定向 (雷火)** | retarget_animation | 为绑骨模型应用预设动画 |
-| **Tripo 模型转换 (雷火)** | convert_model | 转换模型格式（GLTF/USDZ/FBX/OBJ/STL/3MF）|
+| **Tripo 文字转3D ()** | text_to_model | 文字描述生成3D模型 |
+| **Tripo 图像转3D ()** | image_to_model | 单张图像生成3D模型 |
+| **Tripo 多视角转3D ()** | multiview_to_model | 最多4张视角图生成3D模型 |
+| **Tripo 纹理生成 ()** | texture_model | 为已有模型生成纹理 |
+| **Tripo 绑骨 ()** | rig_model | 为模型添加骨骼绑定 |
+| **Tripo 动画重定向 ()** | retarget_animation | 为绑骨模型应用预设动画 |
+| **Tripo 模型转换 ()** | convert_model | 转换模型格式（GLTF/USDZ/FBX/OBJ/STL/3MF）|
 
 ## 支持的模型版本
 
@@ -62,7 +62,7 @@ mklink /D "ComfyUI\custom_nodes\ComfyUI-Tripo-Leihuo" "/path/to/ComfyUI-Tripo-Le
 
 ```json
 {
-    "api_token": "你的雷火API密钥",
+    "api_token": "你的API密钥",
     "base_url": "https://ai.leihuo.netease.com"
 }
 ```
@@ -74,7 +74,7 @@ mklink /D "ComfyUI\custom_nodes\ComfyUI-Tripo-Leihuo" "/path/to/ComfyUI-Tripo-Le
 ### 多视角转3D（核心功能）
 
 1. 准备最多4张不同视角的图像（正面必填）
-2. 连接到 **Tripo 多视角转3D (雷火)** 节点
+2. 连接到 **Tripo 多视角转3D ()** 节点
 3. 选择模型版本 `v3.1-20260211`
 4. 输出：GLB 模型文件 + 任务ID + 预览图
 
