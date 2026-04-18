@@ -34,11 +34,40 @@ class TripoAPIError(Exception):
 
 
 def load_tripo_config(config_path: str) -> Dict[str, str]:
-    """加载 Tripo 配置文件"""
-    if not os.path.exists(config_path):
-        return {"api_token": "", "base_url": "https://ai.leihuo.netease.com"}
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    """
+    加载 Tripo 配置
+
+    优先级（从高到低）：
+    1. 环境变量 ANTHROPIC_AUTH_TOKEN（API Token）/ TRIPO_BASE_URL
+    2. config.json 文件
+    3. 默认值
+    """
+    # 默认值
+    result = {"api_token": "", "base_url": "https://ai.leihuo.netease.com"}
+
+    # 从 config.json 读取
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                file_config = json.load(f)
+                if file_config.get("api_token"):
+                    result["api_token"] = file_config["api_token"]
+                if file_config.get("base_url"):
+                    result["base_url"] = file_config["base_url"]
+        except Exception as e:
+            print(f"[Tripo API] 读取配置文件失败: {e}")
+
+    # 环境变量覆盖（优先级最高）
+    env_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
+    if env_token:
+        result["api_token"] = env_token
+        print(f"[Tripo API] 使用环境变量 ANTHROPIC_AUTH_TOKEN (长度: {len(env_token)})")
+
+    env_base_url = os.environ.get("TRIPO_BASE_URL", "").strip()
+    if env_base_url:
+        result["base_url"] = env_base_url
+
+    return result
 
 
 class TripoAPIClient:

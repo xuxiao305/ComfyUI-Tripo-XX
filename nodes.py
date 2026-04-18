@@ -27,6 +27,7 @@ from typing import Optional
 import folder_paths
 
 from comfy_api.latest import ComfyExtension, io, Input, ComfyAPI
+from comfy_api.latest._util import File3D
 
 from .tripo_api import TripoAPIClient, TripoAPIError, load_tripo_config
 
@@ -275,6 +276,7 @@ class TripoLeihuoTextToModelNode(io.ComfyNode):
                 io.String.Output("model_path", tooltip="3D模型文件本地路径"),
                 io.String.Output("task_id", tooltip="Tripo 任务 ID"),
                 io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
             ],
         )
 
@@ -331,7 +333,8 @@ class TripoLeihuoTextToModelNode(io.ComfyNode):
             preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
 
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
-        return io.NodeOutput(model_path, task_id, preview_tensor)
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, task_id, preview_tensor, glb_file)
 
 
 class TripoLeihuoImageToModelNode(io.ComfyNode):
@@ -375,6 +378,7 @@ class TripoLeihuoImageToModelNode(io.ComfyNode):
                 io.String.Output("model_path", tooltip="3D模型文件本地路径"),
                 io.String.Output("task_id", tooltip="Tripo 任务 ID"),
                 io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
             ],
         )
 
@@ -434,7 +438,8 @@ class TripoLeihuoImageToModelNode(io.ComfyNode):
             preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
 
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
-        return io.NodeOutput(model_path, task_id, preview_tensor)
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, task_id, preview_tensor, glb_file)
 
 
 class TripoLeihuoMultiviewToModelNode(io.ComfyNode):
@@ -482,6 +487,7 @@ class TripoLeihuoMultiviewToModelNode(io.ComfyNode):
                 io.String.Output("model_path", tooltip="3D模型文件本地路径"),
                 io.String.Output("task_id", tooltip="Tripo 任务 ID"),
                 io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
             ],
         )
 
@@ -565,7 +571,8 @@ class TripoLeihuoMultiviewToModelNode(io.ComfyNode):
             preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
 
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
-        return io.NodeOutput(model_path, task_id, preview_tensor)
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, task_id, preview_tensor, glb_file)
 
 
 class TripoLeihuoTextureNode(io.ComfyNode):
@@ -597,6 +604,7 @@ class TripoLeihuoTextureNode(io.ComfyNode):
                 io.String.Output("model_path", tooltip="3D模型文件本地路径"),
                 io.String.Output("task_id", tooltip="Tripo 任务 ID"),
                 io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
             ],
         )
 
@@ -636,7 +644,8 @@ class TripoLeihuoTextureNode(io.ComfyNode):
             preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
 
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
-        return io.NodeOutput(model_path, new_task_id, preview_tensor)
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, new_task_id, preview_tensor, glb_file)
 
 
 class TripoLeihuoRigNode(io.ComfyNode):
@@ -663,6 +672,7 @@ class TripoLeihuoRigNode(io.ComfyNode):
                 io.String.Output("model_path", tooltip="3D模型文件本地路径"),
                 io.String.Output("task_id", tooltip="绑骨任务 ID"),
                 io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
             ],
         )
 
@@ -686,7 +696,8 @@ class TripoLeihuoRigNode(io.ComfyNode):
             preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
 
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
-        return io.NodeOutput(model_path, rig_task_id, preview_tensor)
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, rig_task_id, preview_tensor, glb_file)
 
 
 class TripoLeihuoRetargetNode(io.ComfyNode):
@@ -714,6 +725,7 @@ class TripoLeihuoRetargetNode(io.ComfyNode):
                 io.String.Output("model_path", tooltip="3D模型文件本地路径"),
                 io.String.Output("task_id", tooltip="重定向任务 ID"),
                 io.Image.Output("preview", tooltip="3D模型预览图"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
             ],
         )
 
@@ -740,7 +752,8 @@ class TripoLeihuoRetargetNode(io.ComfyNode):
             preview_tensor = torch.ones(1, 64, 64, 3) * 0.5
 
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
-        return io.NodeOutput(model_path, retarget_task_id, preview_tensor)
+        glb_file = File3D(model_path, "glb")
+        return io.NodeOutput(model_path, retarget_task_id, preview_tensor, glb_file)
 
 
 class TripoLeihuoConvertNode(io.ComfyNode):
@@ -788,6 +801,7 @@ class TripoLeihuoConvertNode(io.ComfyNode):
             outputs=[
                 io.String.Output("model_path", tooltip="3D模型文件本地路径"),
                 io.String.Output("task_id", tooltip="转换任务 ID"),
+                io.File3DGLB.Output("GLB", tooltip="3D模型（GLB格式，支持3D预览）"),
             ],
         )
 
@@ -862,4 +876,5 @@ class TripoLeihuoConvertNode(io.ComfyNode):
         client.download_file(model_url, suffix=file_ext, output_path=model_path)
 
         print(f"[Tripo Leihuo] 完成！模型: {model_path}")
-        return io.NodeOutput(model_path, convert_task_id)
+        glb_file = File3D(model_path, file_ext.lstrip("."))
+        return io.NodeOutput(model_path, convert_task_id, glb_file)
