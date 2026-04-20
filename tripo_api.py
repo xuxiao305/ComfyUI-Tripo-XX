@@ -38,7 +38,7 @@ def load_tripo_config(config_path: str) -> Dict[str, str]:
     加载 Tripo 配置
 
     优先级（从高到低）：
-    1. 环境变量 ANTHROPIC_AUTH_TOKEN（API Token）/ TRIPO_BASE_URL
+    1. 环境变量 TRIPO_API_KEY（API Token）/ TRIPO_BASE_URL
     2. config.json 文件
     3. 默认值
     """
@@ -58,10 +58,13 @@ def load_tripo_config(config_path: str) -> Dict[str, str]:
             print(f"[Tripo API] 读取配置文件失败: {e}")
 
     # 环境变量覆盖（优先级最高）
-    env_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
+    # 支持 TRIPO_API_KEY（推荐）和 ANTHROPIC_AUTH_TOKEN（兼容旧配置）
+    env_token = os.environ.get("TRIPO_API_KEY", "").strip()
+    if not env_token:
+        env_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
     if env_token:
         result["api_token"] = env_token
-        print(f"[Tripo API] 使用环境变量 ANTHROPIC_AUTH_TOKEN (长度: {len(env_token)})")
+        print(f"[Tripo API] 使用环境变量 API Key (长度: {len(env_token)})")
 
     env_base_url = os.environ.get("TRIPO_BASE_URL", "").strip()
     if env_base_url:

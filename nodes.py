@@ -72,6 +72,49 @@ ANIMATION_PRESETS = [
 CONVERT_FORMATS = ["GLTF", "USDZ", "FBX", "OBJ", "STL", "3MF"]
 
 
+def sanitize_task_id(task_id) -> str:
+    """
+    清理 task_id 输入：ComfyUI V3 节点系统中 force_input=True 的 String 输入
+    可能接收到节点链接元数据（含 node_name, center, size 等字段）而非纯字符串。
+    本函数提取实际的 task_id 字符串值。
+
+    Args:
+        task_id: 可能是 str / list[dict] / dict 的输入
+
+    Returns:
+        纯 task_id 字符串
+
+    Raises:
+        RuntimeError: 无法从输入中提取有效 task_id
+    """
+    # 正常情况：已经是纯字符串
+    if isinstance(task_id, str):
+        return task_id.strip()
+
+    # ComfyUI V3 传入了节点元数据列表 [{"index":0, "node_name":"...", ...}]
+    if isinstance(task_id, list) and len(task_id) > 0:
+        # 无法从元数据中提取 task_id，给出明确提示
+        raise RuntimeError(
+            f"task_id 输入收到了节点链接元数据而非任务ID字符串。\n"
+            f"请确认连接的是上游节点的 'task_id' 输出口，而非 'GLB' 或 'model_path' 口。\n"
+            f"收到的数据类型: {type(task_id).__name__}，长度: {len(task_id)}"
+        )
+
+    # 单个字典
+    if isinstance(task_id, dict):
+        raise RuntimeError(
+            f"task_id 输入收到了字典数据而非任务ID字符串。\n"
+            f"请确认连接的是上游节点的 'task_id' 输出口。\n"
+            f"收到的键: {list(task_id.keys())}"
+        )
+
+    # 其他类型
+    if task_id is None:
+        return ""
+
+    return str(task_id).strip()
+
+
 def image_tensor_to_jpeg_bytes(image_tensor, quality: int = 95) -> bytes:
     """
     将 ComfyUI 图像张量转换为 JPEG 字节数据
@@ -939,6 +982,7 @@ class TripoLeihuoMeshSegmentationNode(io.ComfyNode):
 
     @classmethod
     async def execute(cls, task_id: str, api_key: str = "") -> io.NodeOutput:
+        task_id = sanitize_task_id(task_id)
         if not task_id:
             raise RuntimeError("task_id 不能为空")
 
@@ -1004,12 +1048,14 @@ class TripoLeihuoMeshCompletionNode(io.ComfyNode):
 
     @classmethod
     async def execute(cls, task_id: str, part_names: str = "", api_key: str = "") -> io.NodeOutput:
+        task_id = sanitize_task_id(task_id)
         if not task_id:
             raise RuntimeError("task_id 不能为空（需要网格分割任务的 task_id）")
 
         client = get_client_and_config(api_key)
 
-        # 解析 part_names
+        # 解析 part_names（也需清理可能的元数据）
+        part_names = sanitize_task_id(part_names)
         part_names_list = None
         if part_names and part_names.strip():
             part_names_list = [n.strip() for n in part_names.split(',') if n.strip()]
