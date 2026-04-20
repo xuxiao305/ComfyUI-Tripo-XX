@@ -919,7 +919,7 @@ class TripoLeihuoMeshSegmentationNode(io.ComfyNode):
             display_name="Tripo 网格分割 (雷火)",
             description="将3D模型自动分割为多个部件，导入Blender等软件后可在collection区域看到部件名称",
             inputs=[
-                io.String.Input("task_id", tooltip="Tripo 任务 ID（来自生成/纹理/转换节点）"),
+                io.String.Input("task_id", force_input=True, optional=True, tooltip="Tripo 任务 ID（来自生成/纹理/转换节点）"),
                 io.String.Input(
                     "api_key",
                     default="",
@@ -984,8 +984,8 @@ class TripoLeihuoMeshCompletionNode(io.ComfyNode):
             display_name="Tripo 网格补全 (雷火)",
             description="对分割后的模型部件进行几何补全，补全被其他部件遮挡的区域",
             inputs=[
-                io.String.Input("task_id", tooltip="网格分割任务的 task_id（来自 Tripo 网格分割节点）"),
-                io.String.Input("part_names", default="", multiline=False, optional=True, tooltip="要补全的部件名称（逗号分隔，留空=全部部件）"),
+                io.String.Input("task_id", force_input=True, optional=True, tooltip="网格分割任务的 task_id（来自 Tripo 网格分割节点）"),
+                io.String.Input("part_names", default="", multiline=False, force_input=True, optional=True, tooltip="要补全的部件名称（逗号分隔，留空=全部部件）"),
                 io.String.Input(
                     "api_key",
                     default="",
